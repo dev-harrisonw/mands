@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
+import { BlobNotFoundError, BlobPreconditionFailedError, get, head, put } from "@vercel/blob";
 import { seedState } from "./seed";
 import type { Notice, Product, Rating, State } from "./types";
 
@@ -68,11 +68,22 @@ async function saveBlob(state: State, etag: string | null) {
   });
 }
 
+function isConflict(error: unknown) {
+  return (
+    error instanceof BlobPreconditionFailedError ||
+    (error instanceof Error && error.message.includes("ETag mismatch"))
+  );
+}
+
 async function readBlob(): Promise<{ state: State; etag: string }> {
-  const current = await get(BLOB_PATH, { access: "private", useCache: false });
-  if (current?.statusCode === 200) {
+  try {
+    const meta = await head(BLOB_PATH);
+    const current = await get(BLOB_PATH, { access: "private", useCache: false });
+    if (current?.statusCode !== 200) throw new Error("The leaderboard could not be read.");
     const text = await new Response(current.stream).text();
-    return { state: normalize(JSON.parse(text) as Partial<State>), etag: current.blob.etag };
+    return { state: normalize(JSON.parse(text) as Partial<State>), etag: meta.etag };
+  } catch (error) {
+    if (!(error instanceof BlobNotFoundError)) throw error;
   }
 
   const seeded = readFile() ?? seedState();
@@ -120,7 +131,7 @@ export async function update<T>(change: (state: State) => T) {
         await saveBlob(draft, etag);
         return result;
       } catch (error) {
-        if (error instanceof BlobPreconditionFailedError && attempt < 4) continue;
+        if (isConflict(error) && attempt < 4) continue;
         throw error;
       }
     }

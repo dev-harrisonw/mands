@@ -1,0 +1,6 @@
+core
+core.*
+.ddev
+data
+.next
+node_modules

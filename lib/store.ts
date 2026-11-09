@@ -22,7 +22,9 @@ function write(state: State) {
     fs.renameSync(tmp, FILE);
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code === "EROFS" || code === "EACCES" || code === "EPERM") throw new ReadOnlyBoardError();
+    if (code === "EROFS" || code === "EACCES" || code === "EPERM" || code === "ENOENT") {
+      throw new ReadOnlyBoardError();
+    }
     throw error;
   }
 }

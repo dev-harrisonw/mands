@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // The site is served through the DDEV router at *.ddev.site.
+  allowedDevOrigins: ["*.ddev.site"],
+  experimental: {
+    serverActions: {
+      allowedOrigins: ["*.ddev.site"],
+    },
+  },
+  // Scores live in a JSON file and follow a name cookie, so pages stay dynamic.
   turbopack: {
     rules: {
       "*.css": {

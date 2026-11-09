@@ -43,7 +43,7 @@ export async function setTaster(personId: string) {
     return { ok: true as const };
   }
 
-  const known = getState().people.some((person) => person.id === personId);
+  const known = (await getState()).people.some((person) => person.id === personId);
   if (!known) return { ok: false as const, error: "That name isn't on the board." };
 
   jar.set("tasterId", personId, COOKIE);
@@ -115,7 +115,7 @@ export async function searchFood(query: string): Promise<
 > {
   try {
     const hits = await searchMsFood(query);
-    const state = getState();
+    const state = await getState();
     return {
       ok: true,
       hits: hits.map((hit) => ({
